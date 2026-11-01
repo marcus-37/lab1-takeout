@@ -1,0 +1,54 @@
+@startuml UML时序图-派单与配送异常
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceParticipantBackgroundColor #F7FBFF
+skinparam sequenceParticipantBorderColor #33507A
+skinparam ArrowColor #33507A
+skinparam sequenceLifeLineBorderColor #7A8CA6
+
+actor 商家 as M
+actor 管理员 as A
+participant "订单服务" as ORDER
+participant "配送调度服务" as DISPATCH
+participant "骑手端" as RAPP
+actor 配送人员 as R
+
+M -> ORDER : 点击出餐
+ORDER -> ORDER : status = 待配送
+ORDER -> DISPATCH : createTask(orderNo, shopAddress, customerAddress)
+
+A -> DISPATCH : assign(orderNo, riderId)
+DISPATCH -> RAPP : 推送配送任务
+RAPP -> R : 显示待取餐任务
+alt 骑手拒绝
+  R -> RAPP : 拒绝（填写原因）
+  RAPP -> DISPATCH : reject(taskId, reason)
+  DISPATCH -> DISPATCH : 任务回到待分配
+  DISPATCH --> A : 提示重新派单
+else 骑手接受
+  R -> RAPP : 接受
+  RAPP -> DISPATCH : accept(taskId)
+  DISPATCH -> ORDER : status = 配送中
+end
+
+R -> RAPP : 取餐送达
+alt 送达成功
+  R -> RAPP : 确认送达
+  RAPP -> ORDER : delivered(orderNo)
+  ORDER -> ORDER : status = 已送达
+else 配送失败
+  R -> RAPP : 上报配送失败（联系不上/地址错误/无人收货）
+  RAPP -> DISPATCH : reportException(taskId, reason)
+  DISPATCH -> ORDER : status = 配送异常
+  DISPATCH --> A : 进入待处理队列
+  alt 管理员改派
+    A -> DISPATCH : reassign(taskId, newRiderId, reason)
+    DISPATCH -> ORDER : status = 配送中
+  else 管理员取消
+    A -> ORDER : cancel(orderNo, "配送失败")
+    ORDER -> ORDER : 全额退款
+    ORDER -> ORDER : status = 已取消
+  end
+end
+
+@enduml

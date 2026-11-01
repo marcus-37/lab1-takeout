@@ -1,0 +1,9 @@
+build/img/
+build/html/
+build/current_uml/
+build/old_uml/
+build/p*.png
+build/report.html
+build/sec*.txt
+build/*.pyc
+__pycache__/

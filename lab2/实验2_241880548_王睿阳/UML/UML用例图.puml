@@ -1,0 +1,99 @@
+@startuml UML用例图
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam usecaseBorderColor #33507A
+skinparam usecaseBackgroundColor #F7FBFF
+skinparam actorBorderColor #33507A
+skinparam ArrowColor #33507A
+skinparam packageBorderColor #7A8CA6
+
+actor "顾客" as C
+actor "商家" as M
+actor "配送人员" as R
+actor "平台管理员" as A
+actor "定时任务" as SCH <<system>>
+
+rectangle "外卖点餐与配送系统" {
+  package "点餐与下单" {
+    usecase "浏览与搜索菜品" as UC01
+    usecase "维护购物车" as UC02
+    usecase "提交订单" as UC03
+    usecase "选择收货地址" as UC04
+    usecase "余额支付" as UC05
+    usecase "查看订单状态" as UC06
+  }
+  package "商家经营" {
+    usecase "维护店铺与营业状态" as UC07
+    usecase "维护菜品" as UC08
+    usecase "设置每日库存" as UC09
+    usecase "接单或拒单" as UC10
+    usecase "出餐并呼叫配送" as UC11
+    usecase "查看营业额" as UC12
+  }
+  package "履约与配送" {
+    usecase "派单与改派" as UC13
+    usecase "接受或拒绝配送任务" as UC14
+    usecase "确认送达" as UC15
+    usecase "上报配送失败" as UC16
+  }
+  package "售后与异常" {
+    usecase "取消订单" as UC17
+    usecase "申请与处理退款" as UC18
+    usecase "仲裁退款" as UC19
+    usecase "超时未接单自动取消" as UC20
+    usecase "未支付超时释放库存" as UC21
+    usecase "退款超时自动同意" as UC22
+  }
+  package "平台管理" {
+    usecase "审核商家入驻" as UC23
+    usecase "强制关店与封禁" as UC24
+    usecase "查询操作记录" as UC25
+  }
+}
+
+C --> UC01
+C --> UC02
+C --> UC03
+C --> UC05
+C --> UC06
+C --> UC17
+
+M --> UC07
+M --> UC08
+M --> UC09
+M --> UC10
+M --> UC11
+M --> UC12
+M --> UC18
+
+R --> UC14
+R --> UC15
+R --> UC16
+
+A --> UC13
+A --> UC19
+A --> UC23
+A --> UC24
+A --> UC25
+
+SCH --> UC20
+SCH --> UC21
+SCH --> UC22
+
+UC03 .> UC04 : <<include>>
+UC03 .> UC21 : <<extend>>
+UC05 .> UC18 : <<extend>>
+UC17 .> UC18 : <<include>>
+UC10 .> UC11 : <<include>>
+UC15 .> UC06 : <<include>>
+UC13 .> UC14 : <<include>>
+UC16 .> UC13 : <<extend>>
+
+note bottom of UC03
+  提交订单时校验：购物车非空、
+  店铺营业中、地址在配送范围、
+  菜品未下架、库存可预占
+end note
+
+@enduml

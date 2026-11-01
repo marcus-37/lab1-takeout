@@ -1,0 +1,215 @@
+@startuml UML类图
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam classBorderColor #33507A
+skinparam classBackgroundColor #F7FBFF
+skinparam classHeaderBackgroundColor #DCE9F7
+skinparam ArrowColor #33507A
+hide empty members
+
+package "用户与权限模块" {
+  abstract class Account {
+    - id : Long
+    - phone : String
+    - passwordHash : String
+    - status : AccountStatus
+    + login(phone, pwd) : Token
+    + logout() : void
+    + isEnabled() : Boolean
+  }
+  class Customer {
+    - balanceFen : Long
+    + recharge(amountFen) : void
+    + deduct(amountFen) : Boolean
+  }
+  class Merchant {
+    - licenseNo : String
+  }
+  class Rider {
+    - online : Boolean
+    - areaCode : String
+    + acceptTask(taskId) : Boolean
+  }
+  class Admin {
+    - adminLevel : int
+  }
+}
+
+package "店铺与菜品模块" {
+  class Shop {
+    - id : Long
+    - name : String
+    - status : ShopStatus
+    - openTime : Time
+    - closeTime : Time
+    + open() : void
+    + rest() : void
+    + closeByPlatform(reason) : void
+  }
+  class Dish {
+    - id : Long
+    - name : String
+    - priceFen : Long
+    - status : DishStatus
+    + changePrice(newPriceFen) : void
+    + putOn() : void
+    + takeOff() : void
+  }
+  class DailyStock {
+    - stockDate : Date
+    - totalQty : int
+    - reservedQty : int
+    - soldQty : int
+    + available() : int
+    + reserve(qty) : Boolean
+    + release(qty) : void
+    + confirm(qty) : void
+    + reset(totalQty) : void
+  }
+}
+
+package "购物车与订单模块" {
+  class Cart {
+    - id : Long
+    + addDish(dishId, qty) : void
+    + clear() : void
+    + totalFen() : Long
+  }
+  class CartItem {
+    - qty : int
+    - addedPriceFen : Long
+  }
+  class Order {
+    - orderNo : String
+    - status : OrderStatus
+    - goodsAmountFen : Long
+    - deliveryFeeFen : Long
+    - payAmountFen : Long
+    - submitToken : String
+    - addressText : String
+    - createdAt : DateTime
+    + submit(token) : Order
+    + transitTo(next, operator) : Boolean
+  }
+  class OrderItem {
+    - dishName : String
+    - unitPriceFen : Long
+    - qty : int
+    + amountFen() : Long
+  }
+}
+
+package "支付与退款模块" {
+  class Payment {
+    - payNo : String
+    - amountFen : Long
+    - status : PayStatus
+    - paidAt : DateTime
+  }
+  class Refund {
+    - refundNo : String
+    - amountFen : Long
+    - type : RefundType
+    - reason : String
+    - status : RefundStatus
+  }
+}
+
+package "配送模块" {
+  class DeliveryTask {
+    - id : Long
+    - status : TaskStatus
+    - assignedAt : DateTime
+    - failReason : String
+    + assign(riderId) : Boolean
+    + reassign(riderId, reason) : void
+    + reportException(reason) : void
+    + finish() : void
+  }
+}
+
+package "审计与通知模块" {
+  class OperationLog {
+    - targetType : String
+    - targetId : Long
+    - action : String
+    - beforeValue : String
+    - afterValue : String
+    - reason : String
+    - createdAt : DateTime
+  }
+  class Notification {
+    - receiverId : Long
+    - title : String
+    - content : String
+    - readFlag : Boolean
+  }
+}
+
+package "枚举" {
+  enum Role {
+    CUSTOMER
+    MERCHANT
+    RIDER
+    ADMIN
+  }
+  enum OrderStatus {
+    待支付
+    待接单
+    制作中
+    待配送
+    配送中
+    已送达
+    已完成
+    已取消
+  }
+  enum ShopStatus {
+    营业中
+    休息中
+    平台关闭
+  }
+}
+
+' ---------- 继承与归属 ----------
+Account <|-- Customer
+Account <|-- Merchant
+Account <|-- Rider
+Account <|-- Admin
+Account o-- Role
+
+Merchant "1" -- "0..*" Shop : 经营 >
+Shop "1" o-- "0..*" Dish : 上架 >
+Dish "1" -- "0..*" DailyStock : 按日 >
+
+Customer "1" -- "1" Cart
+Cart "1" *-- "0..*" CartItem
+CartItem "0..*" --> "1" Dish : 引用 >
+
+Customer "1" -- "0..*" Order : 下达 >
+Shop "1" -- "0..*" Order : 受理 >
+Order "1" *-- "1..*" OrderItem : 快照 >
+OrderItem "0..*" --> "1" Dish : 来源 >
+
+Order "1" -- "0..1" Payment
+Order "1" -- "0..*" Refund
+Order "1" -- "0..1" DeliveryTask
+DeliveryTask "0..*" --> "0..1" Rider : 指派 >
+Rider "1" -- "0..*" DeliveryTask
+
+Order ..> OrderStatus
+Shop ..> ShopStatus
+Account "1" -- "0..*" OperationLog : 操作 >
+Order "1" -- "0..*" Notification : 通知 >
+
+note right of OrderItem
+  价格快照：unitPriceFen 在下单时
+  固化，商家改价不覆盖历史明细
+end note
+
+note bottom of DailyStock
+  available = totalQty - reservedQty - soldQty
+  reserve 后 30 分钟未支付由定时任务 release
+end note
+
+@enduml
