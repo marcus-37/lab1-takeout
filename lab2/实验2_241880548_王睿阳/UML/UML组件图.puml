@@ -8,73 +8,75 @@ skinparam packageBorderColor #7A8CA6
 skinparam ArrowColor #33507A
 
 package "客户端层" {
-  component [顾客端\n下单与查询] as CLI_C
-  component [商家端\n订单与菜品] as CLI_M
-  component [骑手端\n配送任务] as CLI_R
-  component [管理端\n审核与干预] as CLI_A
+  component [顾客端\n点餐与查单] as C
+  component [商家端\n订单与菜品] as M
+  component [骑手端\n配送任务] as R
+  component [管理端\n审核与干预] as A
 }
 
+component [API 网关\n鉴权 / 限流 / 路由] as GW
+
 package "应用服务层" {
-  component [用户与权限服务\nAccountService] as SVC_USER
-  component [商家与店铺服务\nShopService] as SVC_SHOP
-  component [商品与库存服务\nCatalogService] as SVC_CATALOG
-  component [订单服务\nOrderService] as SVC_ORDER
-  component [支付与退款服务\nPayService] as SVC_PAY
-  component [配送调度服务\nDispatchService] as SVC_DISPATCH
-  component [售后与仲裁服务\nAfterSalesService] as SVC_AFTER
-  component [审计与通知服务\nAuditService] as SVC_AUDIT
+  component [用户与权限服务] as USER
+  component [商家与店铺服务] as SHOP
+  component [商品与库存服务] as CAT
+  component [订单服务] as ORD
+  component [支付与退款服务] as PAY
+  component [配送调度服务] as DISP
+  component [售后与仲裁服务] as AFTER
+  component [审计与通知服务] as AUDIT
 }
 
 package "基础设施层" {
-  database "关系数据库\nMySQL" as DB
-  component [定时任务调度\nScheduler] as SCH
+  database "MySQL\n订单 / 库存 / 流水" as DB
+  component [定时任务调度] as SCH
   component [对象存储\n菜品图片] as OSS
-  component [消息通知网关\n站内信] as MSG
+  component [消息通知] as MSG
 }
 
-CLI_C --> SVC_USER : 登录鉴权
-CLI_C --> SVC_CATALOG : 浏览/搜索
-CLI_C --> SVC_ORDER : 下单/查单
-CLI_C --> SVC_PAY : 支付/退款
-CLI_M --> SVC_SHOP : 营业状态
-CLI_M --> SVC_CATALOG : 菜品与库存
-CLI_M --> SVC_ORDER : 接单/出餐
-CLI_M --> SVC_AFTER : 处理退款申请
-CLI_R --> SVC_DISPATCH : 接单/改派/上报
-CLI_R --> SVC_ORDER : 更新配送状态
-CLI_A --> SVC_SHOP : 入驻审核/强制关店
-CLI_A --> SVC_DISPATCH : 派单/改派
-CLI_A --> SVC_AFTER : 仲裁退款
-CLI_A --> SVC_AUDIT : 查询操作记录
+C --> GW
+M --> GW
+R --> GW
+A --> GW
 
-SVC_ORDER --> SVC_CATALOG : 预占/释放库存
-SVC_ORDER --> SVC_PAY : 发起支付、触发退款
-SVC_ORDER --> SVC_DISPATCH : 生成配送任务
-SVC_ORDER --> SVC_AUDIT : 记录状态变更
-SVC_PAY --> SVC_AUDIT : 记录资金流水
-SVC_DISPATCH --> SVC_ORDER : 回写订单状态
-SVC_AFTER --> SVC_ORDER : 取消订单
-SVC_AFTER --> SVC_PAY : 发起退款
-SVC_SHOP --> SVC_CATALOG : 上下架联动
-SVC_AUDIT --> MSG : 推送通知
+GW --> USER
+GW --> SHOP
+GW --> CAT
+GW --> ORD
+GW --> PAY
+GW --> DISP
+GW --> AFTER
+GW --> AUDIT
 
-SCH --> SVC_ORDER : 超时未支付取消
-SCH --> SVC_CATALOG : 每日库存重置
-SCH --> SVC_AFTER : 退款超时自动同意
-SVC_USER --> DB
-SVC_SHOP --> DB
-SVC_CATALOG --> DB
-SVC_ORDER --> DB
-SVC_PAY --> DB
-SVC_DISPATCH --> DB
-SVC_AFTER --> DB
-SVC_AUDIT --> DB
-SVC_CATALOG --> OSS : 上传图片
+ORD --> CAT : 预占/释放库存
+ORD --> PAY : 支付/退款
+ORD --> DISP : 生成配送任务
+DISP --> ORD : 回写订单状态
+AFTER --> ORD : 取消订单
+AFTER --> PAY : 发起退款
+SHOP --> CAT : 上下架联动
+ORD --> AUDIT : 记录状态变更
 
-note right of SVC_ORDER
+USER --> DB
+SHOP --> DB
+CAT --> DB
+ORD --> DB
+PAY --> DB
+DISP --> DB
+AFTER --> DB
+AUDIT --> DB
+
+CAT --> OSS : 图片读写
+AUDIT --> MSG : 推送通知
+
+SCH --> ORD : 超时未支付取消
+SCH --> CAT : 每日库存重置
+SCH --> AFTER : 退款超时自动同意
+
+note right of ORD
   订单服务是唯一允许修改
   Order.status 的入口，
-  其他服务通过接口回调变更，
+  其他服务只能通过接口回写，
   保证状态机不被绕过。
 end note
 

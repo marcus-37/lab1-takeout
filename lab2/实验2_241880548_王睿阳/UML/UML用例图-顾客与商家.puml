@@ -1,0 +1,61 @@
+@startuml UML用例图-顾客与商家
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam usecaseBorderColor #33507A
+skinparam usecaseBackgroundColor #F7FBFF
+skinparam actorBorderColor #33507A
+skinparam ArrowColor #33507A
+skinparam packageBorderColor #7A8CA6
+
+actor "顾客" as C
+actor "商家" as M
+
+rectangle "外卖点餐与配送系统（顾客与商家侧）" {
+  package "点餐与下单" {
+    usecase "浏览与搜索菜品" as UC01
+    usecase "维护购物车" as UC02
+    usecase "提交订单" as UC03
+    usecase "选择收货地址" as UC04
+    usecase "余额支付" as UC05
+    usecase "查看订单状态" as UC06
+  }
+  package "商家经营" {
+    usecase "维护店铺与营业状态" as UC07
+    usecase "维护菜品与每日库存" as UC08
+    usecase "接单或拒单" as UC09
+    usecase "出餐并呼叫配送" as UC10
+    usecase "查看营业额" as UC11
+  }
+  package "售后申请" {
+    usecase "取消订单" as UC12
+    usecase "申请退款" as UC13
+    usecase "处理退款申请" as UC14
+  }
+}
+
+C --> UC01
+C --> UC02
+C --> UC03
+C --> UC05
+C --> UC06
+C --> UC12
+
+M --> UC07
+M --> UC08
+M --> UC09
+M --> UC10
+M --> UC11
+M --> UC14
+
+UC03 .> UC04 : <<include>>
+UC12 .> UC13 : <<include>>
+UC13 <.. UC14 : 商家响应
+
+note bottom of UC03
+  提交订单时校验：购物车非空、
+  店铺营业中、地址在配送范围、
+  菜品未下架、库存可预占
+end note
+
+@enduml
