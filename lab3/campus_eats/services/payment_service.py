@@ -163,7 +163,7 @@ class PaymentService:
     # ---------- REQ-025 统计（口径：按自然日汇总；退款从营业额中扣减） ----------
 
     def merchant_daily_stats(self, merchant: Account) -> dict:
-        """商家当日订单数与营业额（REQ-025，实收口径）。"""
+        """商家当日订单数与营业额（REQ-025，实收口径：已支付且未取消）。"""
         shop_id = self._shop_id(merchant)
         today = self._ctx.clock.now().date()
         order_count = 0
@@ -171,8 +171,8 @@ class PaymentService:
         for order in self._ctx.repos.orders.list_by_shop(shop_id):
             if self._date_of(order.created_at) != today:
                 continue
-            if order.status is OrderStatus.CANCELLED:
-                continue
+            if order.status in (OrderStatus.CANCELLED, OrderStatus.PENDING_PAY):
+                continue                      # 未支付与已取消不计入营业额
             order_count += 1
             revenue_fen += order.pay_amount_fen - order.refunded_fen
         return {"order_count": order_count, "revenue_fen": revenue_fen}
@@ -180,7 +180,7 @@ class PaymentService:
     def rider_daily_stats(self, rider: Account) -> dict:
         """骑手当日完成单量与收入（REQ-025，按单固定 RIDER_INCOME_PER_ORDER_FEN）。"""
         today = self._ctx.clock.now().date()
-        done = [t for t in self._ctx.repos.tasks.list_by_rider(rider.account_id)
+        done = [t for t in self._ctx.repos.tasks.list_by_rider_history(rider.account_id)
                 if t.status.value == "已完成"
                 and self._date_of(t.completed_at) == today]
         return {"done_count": len(done),

@@ -315,6 +315,13 @@ class TaskRepository:
             (rider_id, TaskStatus.FINISHED.value, TaskStatus.EXCEPTION.value))
         return [self._to_task(r) for r in rows]
 
+    def list_by_rider_history(self, rider_id: int) -> list[DeliveryTask]:
+        """骑手全部历史任务（含已完成/异常，统计用）。"""
+        rows = self._db.query_all(
+            "SELECT * FROM delivery_task WHERE rider_id=? ORDER BY task_id DESC",
+            (rider_id,))
+        return [self._to_task(r) for r in rows]
+
     def list_by_status(self, status: TaskStatus) -> list[DeliveryTask]:
         """按状态列任务（待分配队列 / 异常队列）。"""
         rows = self._db.query_all(
