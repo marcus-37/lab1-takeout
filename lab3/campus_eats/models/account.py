@@ -52,6 +52,7 @@ class Account(ABC):
 class Customer(Account):
     """顾客：钱包余额支付，余额以分存储（REQ-010）。"""
 
+    role: Role = Role.CUSTOMER
     balance_fen: int = 0
 
     def recharge(self, amount_fen: int) -> None:
@@ -72,6 +73,7 @@ class Customer(Account):
 class Merchant(Account):
     """商家：账号与店铺一一对应，本期不设店员子账号（REQ-001）。"""
 
+    role: Role = Role.MERCHANT
     license_no: str = ""
 
 
@@ -83,6 +85,7 @@ class Rider(Account):
     订单状态回写，故移入 DispatchService。
     """
 
+    role: Role = Role.RIDER
     online: bool = False
     area_code: str = ""
 
@@ -91,4 +94,5 @@ class Rider(Account):
 class Admin(Account):
     """平台管理员：可审核入驻、干预订单、封禁账号（REQ-026）。"""
 
+    role: Role = Role.ADMIN
     admin_level: int = 1
