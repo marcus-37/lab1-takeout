@@ -67,6 +67,11 @@ package "店铺与菜品模块" {
     + confirm(qty) : void
     + reset(totalQty) : void
   }
+  class Building {
+    - code : String
+    - name : String
+    - inRange : Boolean
+  }
 }
 
 package "购物车与订单模块" {
@@ -111,8 +116,9 @@ package "支付与退款模块" {
     - refundNo : String
     - amountFen : Long
     - type : RefundType
+    - status : String
     - reason : String
-    - status : RefundStatus
+    - requestedBy : String
   }
 }
 
@@ -163,8 +169,11 @@ package "枚举" {
     已送达
     已完成
     已取消
+    配送异常
   }
   enum ShopStatus {
+    待审核
+    已驳回
     营业中
     休息中
     平台关闭
@@ -194,6 +203,7 @@ OrderItem "0..*" --> "1" Dish : 来源 >
 Order "1" -- "0..1" Payment
 Order "1" -- "0..*" Refund
 Order "1" -- "0..1" DeliveryTask
+Order "0..*" --> "1" Building : 收货地址只可选 >
 DeliveryTask "0..*" --> "0..1" Rider : 指派 >
 Rider "1" -- "0..*" DeliveryTask
 
@@ -210,6 +220,20 @@ end note
 note bottom of DailyStock
   available = totalQty - reservedQty - soldQty
   reserve 后 30 分钟未支付由定时任务 release
+end note
+
+note right of Building
+  预设楼栋白名单（实验三实现补充）：
+  收货地址只能从列表选择，
+  inRange=false 的楼栋不可下单
+end note
+
+note bottom of Refund
+  实验三实现补充字段：
+  status 区分 待处理/已退款/已拒绝
+  （接单后取消须商家同意，
+  24 小时未处理自动同意）；
+  requestedBy 记录申请人
 end note
 
 @enduml
