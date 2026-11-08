@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db
+*.sqlite3
+build/pass1.pdf
+build/pass2.pdf
+build/pagemap.json
+report.html
+实验3_*.zip
