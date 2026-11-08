@@ -96,6 +96,11 @@ class DishRepository:
         row = self._db.query_one("SELECT * FROM dish WHERE dish_id=?", (dish_id,))
         return self._to_dish(row) if row else None
 
+    def list_all(self) -> list[Dish]:
+        """全部菜品（调度器每日库存重置用）。"""
+        rows = self._db.query_all("SELECT * FROM dish ORDER BY dish_id")
+        return [self._to_dish(r) for r in rows]
+
     def list_by_shop(self, shop_id: int, include_off: bool = False) -> list[Dish]:
         """列店铺菜品；默认只列上架，商家管理页传 include_off=True 看全部。"""
         if include_off:

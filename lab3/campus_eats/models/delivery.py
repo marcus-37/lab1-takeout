@@ -7,10 +7,13 @@ from campus_eats.models.enums import TaskStatus
 from campus_eats.models.errors import IllegalTransitionError, ValidationError
 
 # 任务状态迁移表：待分配 -> 待接受 -> 配送中 -> 已完成 / 异常；
-# 骑手拒绝：待接受 -> 待分配；管理员改派：待分配或异常 -> 待接受。
+# 骑手拒绝：待接受 -> 待分配；管理员改派：已指派（含待接受）或异常 -> 待接受，
+# 改派是换人不是改状态，待接受 -> 待接受 为自环（REQ-012「已指派订单可改派」）；
+# 配送超时：待分配 -> 异常（挂起转管理员处置，对应状态图「配送超时」）。
 TASK_LEGAL_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
-    TaskStatus.WAIT_ASSIGN: frozenset({TaskStatus.WAIT_ACCEPT}),
-    TaskStatus.WAIT_ACCEPT: frozenset({TaskStatus.DELIVERING, TaskStatus.WAIT_ASSIGN}),
+    TaskStatus.WAIT_ASSIGN: frozenset({TaskStatus.WAIT_ACCEPT, TaskStatus.EXCEPTION}),
+    TaskStatus.WAIT_ACCEPT: frozenset(
+        {TaskStatus.DELIVERING, TaskStatus.WAIT_ASSIGN, TaskStatus.WAIT_ACCEPT}),
     TaskStatus.DELIVERING: frozenset({TaskStatus.FINISHED, TaskStatus.EXCEPTION}),
     TaskStatus.EXCEPTION: frozenset({TaskStatus.WAIT_ACCEPT}),
     TaskStatus.FINISHED: frozenset(),
@@ -35,11 +38,12 @@ class DeliveryTask:
     completed_at: datetime | None = None
 
     def _transit(self, next_status: TaskStatus, action: str) -> None:
-        """内部迁移检查，语义见 TASK_LEGAL_TRANSITIONS。"""
+        """内部迁移：合法迁移表校验通过后变更状态（语义见 TASK_LEGAL_TRANSITIONS）。"""
         if next_status not in TASK_LEGAL_TRANSITIONS[self.status]:
             raise IllegalTransitionError(
                 f"配送任务 {self.order_no} 不允许从「{self.status.label}」"
                 f"{action}为「{next_status.label}」")
+        self.status = next_status
 
     def assign(self, rider_id: int, rider_name: str) -> None:
         """管理员指派骑手：仅待分配可指派；同一订单不会同时指派两人由服务层互斥保证。"""
@@ -72,6 +76,11 @@ class DeliveryTask:
             raise ValidationError("配送失败原因仅限：联系不上顾客、地址错误、无人收货")
         self._transit(TaskStatus.EXCEPTION, "上报")
         self.fail_reason = reason
+
+    def mark_timeout(self) -> None:
+        """调度任务标记配送超时：长时间无人接单，挂起转管理员处置（状态图）。"""
+        self._transit(TaskStatus.EXCEPTION, "超时")
+        self.fail_reason = "配送超时：长时间无人接单，转管理员处置"
 
     def finish(self) -> None:
         """骑手确认送达：任务完成，订单由订单服务转已送达。"""

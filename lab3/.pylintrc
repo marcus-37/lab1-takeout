@@ -8,11 +8,13 @@ ignore-paths=^.venv
 # too-few-public-methods      领域模型/数据类方法少是常态
 # too-many-instance-attributes 领域实体字段数由实验二类图决定
 # too-many-arguments          服务方法需携带操作人、原因等审计参数
+# too-many-positional-arguments 同上：record(operator, 类型, id, 描述, 动作…) 为审计五元组
 # duplicate-code              仓储层各实体的 CRUD 结构相似属预期
 disable=
     too-few-public-methods,
     too-many-instance-attributes,
     too-many-arguments,
+    too-many-positional-arguments,
     duplicate-code
 
 [DESIGN]
