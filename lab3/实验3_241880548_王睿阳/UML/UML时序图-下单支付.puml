@@ -1,0 +1,53 @@
+@startuml UML时序图-下单与支付
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceParticipantBackgroundColor #F7FBFF
+skinparam sequenceParticipantBorderColor #33507A
+skinparam ArrowColor #33507A
+skinparam sequenceLifeLineBorderColor #7A8CA6
+
+actor 顾客 as C
+participant "顾客端" as APP
+participant "订单服务" as ORDER
+participant "库存服务" as STOCK
+participant "支付服务" as PAY
+participant "定时任务" as SCH
+database "数据库" as DB
+
+C -> APP : 填写地址、点击提交
+APP -> ORDER : submitOrder(token, cartItems, address)
+ORDER -> ORDER : 校验提交令牌
+alt 令牌已使用
+  ORDER --> APP : 返回首次生成的订单
+else 首次提交
+  ORDER -> STOCK : reserve(dishId, qty)
+  alt 库存不足
+    STOCK --> ORDER : 售罄
+    ORDER --> APP : 提交失败（提示售罄）
+  else 预占成功
+    STOCK --> ORDER : 预占成功
+    ORDER -> DB : 写入订单与明细快照
+    ORDER --> APP : 订单号、应付金额
+  end
+end
+
+C -> APP : 选择余额支付
+APP -> PAY : pay(orderNo, token)
+PAY -> DB : 扣减余额（条件更新）
+alt 余额不足或金额不符
+  PAY --> APP : 支付失败
+else 扣款成功
+  PAY -> STOCK : confirm(预占转已售)
+  PAY -> ORDER : notifyPaid(orderNo)
+  ORDER -> DB : status = 待接单
+  ORDER -> DB : 写操作记录
+  PAY --> APP : 支付成功
+end
+
+SCH -> ORDER : 扫描超时未支付订单
+SCH -> ORDER : cancelByTimeout(orderNo)
+ORDER -> STOCK : release(回补库存)
+ORDER -> DB : status = 已取消
+ORDER --> C : 推送取消通知
+
+@enduml

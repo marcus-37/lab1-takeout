@@ -1,0 +1,33 @@
+[MAIN]
+# PySide6 是 C 扩展包，允许 astroid 加载它以减少 no-member 误报
+extension-pkg-allow-list=PySide6
+ignore-paths=^.venv
+
+[MESSAGES CONTROL]
+# 禁用项及理由（其余检查全部保留）：
+# too-few-public-methods      领域模型/数据类方法少是常态
+# too-many-instance-attributes 领域实体字段数由实验二类图决定
+# too-many-arguments          服务方法需携带操作人、原因等审计参数
+# too-many-positional-arguments 同上：record(operator, 类型, id, 描述, 动作…) 为审计五元组
+# duplicate-code              仓储层各实体的 CRUD 结构相似属预期
+disable=
+    too-few-public-methods,
+    too-many-instance-attributes,
+    too-many-arguments,
+    too-many-positional-arguments,
+    duplicate-code
+
+[DESIGN]
+# 订单状态机的合法迁移校验分支较多，适度放宽复杂度阈值（默认 12/50/20/15）
+max-branches=15
+max-statements=60
+max-public-methods=30
+max-locals=25
+
+[FORMAT]
+max-line-length=100
+
+[TYPECHECK]
+# PySide6 信号（clicked 等）为运行时动态属性，astroid 推断不出成员，
+# 对 .connect 调用豁免 no-member（仅此一个成员名，其余检查不受影响）
+generated-members=connect

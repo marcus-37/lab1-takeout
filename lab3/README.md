@@ -31,16 +31,19 @@ python -m venv .venv
 ## 测试与风格检查
 
 ```powershell
-.venv\Scripts\python -m pytest -q                       # 单元测试
-.venv\Scripts\python -m pylint campus_eats              # 风格检查（目标 ≥9.5 分）
-.venv\Scripts\python -m pylint campus_eats --fail-below=9.5
+.venv\Scripts\python -m pytest -q                       # 63 项测试
+.venv\Scripts\python -m pylint campus_eats              # 风格检查，当前 10.00/10
+.venv\Scripts\python scripts/e2e_check.py               # 32 项端到端验收（含并发）
 ```
 
-## 代码量统计（不含空行与注释，用于实验报告）
+## 代码量统计（实验报告引用，`build/count_lines.py` 可复现）
 
-```powershell
-Get-ChildItem -Recurse campus_eats,tests -Filter *.py | Get-Content | Measure-Object -Line
-```
+| 目录 | 文件数 | 总行数 | 代码行（去空行与注释） |
+| --- | --- | --- | --- |
+| campus_eats | 44 | 5789 | 4417 |
+| tests | 7 | 868 | 717 |
+| scripts | 1 | 282 | 231 |
+| **合计** | **52** | **6939** | **5365** |
 
 ## 目录结构
 

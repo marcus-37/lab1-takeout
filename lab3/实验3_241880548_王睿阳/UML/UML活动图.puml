@@ -1,0 +1,76 @@
+@startuml UML活动图
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activityBorderColor #33507A
+skinparam activityBackgroundColor #F7FBFF
+skinparam ArrowColor #33507A
+skinparam swimlaneBorderColor #7A8CA6
+
+|顾客|
+start
+:浏览或搜索菜品;
+:加入购物车;
+:选择收货楼栋与门牌;
+
+|系统|
+:校验提交令牌、营业状态与配送范围;
+if (校验通过?) then (否)
+  :返回失败原因;
+  stop
+else (是)
+  :预占库存并生成订单价格快照;
+endif
+
+|顾客|
+:余额支付;
+
+|系统|
+if (支付成功?) then (否)
+  :订单保持待支付;
+  :30 分钟后自动取消并释放库存;
+  stop
+else (是)
+  :订单转为待接单;
+endif
+
+|商家|
+if (10 分钟内接单?) then (是)
+  :接单并制作;
+  :点击出餐，订单转待配送;
+else (否)
+  |系统|
+  :自动取消并全额退款;
+  stop
+endif
+
+|管理员|
+:按片区指派骑手;
+
+|配送人员|
+if (接受任务?) then (是)
+  :取餐配送;
+else (否)
+  |管理员|
+  :改派其他骑手，流程回到派单环节;
+  stop
+endif
+
+|配送人员|
+if (送达成功?) then (是)
+  :确认送达;
+else (否)
+  :上报配送失败;
+  |管理员|
+  :改派或取消退款后归档;
+  stop
+endif
+
+|顾客|
+:确认收货;
+
+|系统|
+:2 小时未确认则自动完成;
+:写入操作记录;
+stop
+
+@enduml
