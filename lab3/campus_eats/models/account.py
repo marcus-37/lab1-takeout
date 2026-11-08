@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from campus_eats.models.enums import AccountStatus, Role
-from campus_eats.models.errors import ValidationError
 from campus_eats.models.money import assert_positive_fen
 
 

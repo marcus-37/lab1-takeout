@@ -28,10 +28,10 @@ class AccountRepository:
         """把一行数据还原为对应角色的账号子类实例。"""
         role = Role(row["role"])
         cls = _ROLE_CLASSES[role]
-        base = dict(phone=row["phone"], name=row["name"],
-                    password_hash=row["password_hash"], role=role,
-                    status=AccountStatus(row["status"]), account_id=row["account_id"],
-                    created_at=parse_dt(row["created_at"]))
+        base = {"phone": row["phone"], "name": row["name"],
+                "password_hash": row["password_hash"], "role": role,
+                "status": AccountStatus(row["status"]), "account_id": row["account_id"],
+                "created_at": parse_dt(row["created_at"])}
         if role is Role.CUSTOMER:
             return cls(**base, balance_fen=row["balance_fen"] or 0)
         if role is Role.MERCHANT:
