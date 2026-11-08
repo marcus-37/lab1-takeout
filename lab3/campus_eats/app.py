@@ -85,14 +85,15 @@ def build_argparser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    """程序入口：装配应用并启动 PySide6 界面。"""
+    """程序入口：装配应用并启动 PySide6 界面。
+
+    调度器由界面心跳（QTimer）驱动，不另起后台线程，避免跨线程刷新控件。
+    """
     args = build_argparser().parse_args()
     db_path = ":memory:" if args.memory else os.path.abspath(DB_FILENAME)
     app = App(db_path, demo=args.demo)
-    app.scheduler.start()
 
     try:
-        run_ui(app)
+        return run_ui(app)
     finally:
         app.close()
-    return 0

@@ -144,7 +144,7 @@ class DispatchService:
                                f"订单 {task.order_no} 配送中")
             return task
 
-    def reject_task(self, rider: Account, task_id: int) -> DeliveryTask:
+    def reject_task(self, rider: Account, task_id: int, reason: str = "") -> DeliveryTask:
         """骑手拒绝任务：回到待分配，等待管理员重新派单（REQ-012）。"""
         with self._ctx.lock:
             task = self._require_task(task_id)
@@ -152,11 +152,15 @@ class DispatchService:
                 raise PermissionDeniedError("该任务未指派给你")
             before = task.status.label
             task.reject()
+            if reason.strip():
+                task.fail_reason = f"骑手拒单：{reason.strip()}"
             self._ctx.repos.tasks.update(task)
             self._audit.record(rider, "TASK", task_id, f"任务 {task.order_no}",
-                               "拒绝任务", before=before, after=task.status.label)
+                               "拒绝任务", before=before, after=task.status.label,
+                               reason=reason)
             self._audit.notify(self._admin_id(), "骑手拒单，请重新派单",
-                               f"订单 {task.order_no} 已被 {rider.name} 拒绝")
+                               f"订单 {task.order_no} 已被 {rider.name} 拒绝"
+                               + (f"（{reason.strip()}）" if reason.strip() else ""))
             return task
 
     def finish_task(self, rider: Account, task_id: int) -> DeliveryTask:

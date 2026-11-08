@@ -26,3 +26,8 @@ max-locals=25
 
 [FORMAT]
 max-line-length=100
+
+[TYPECHECK]
+# PySide6 信号（clicked 等）为运行时动态属性，astroid 推断不出成员，
+# 对 .connect 调用豁免 no-member（仅此一个成员名，其余检查不受影响）
+generated-members=connect
