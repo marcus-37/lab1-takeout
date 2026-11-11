@@ -171,8 +171,10 @@ class AdminView(QWidget):
                        self.ban_list):
             while layout.count():
                 item = layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
+                    widget.deleteLater()
 
         riders = [r for r in self._app.repos.accounts.list_by_role(Role.RIDER)
                   if r.online]

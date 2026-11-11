@@ -74,8 +74,10 @@ class RiderView(QWidget):
         self.online_btn.setEnabled(True)
         while self.task_col.count():
             item = self.task_col.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
         tasks = self._app.repos.tasks.list_by_rider(self._me.account_id)
         if not tasks:
             empty = QLabel("暂无任务" + ("" if self._me.online else "（上线后管理员才能派单给你）"))

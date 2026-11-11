@@ -7,6 +7,8 @@
 """
 # pylint: disable=broad-exception-caught
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel,
     QLineEdit, QMessageBox, QPushButton, QStackedWidget, QTextEdit,
@@ -162,8 +164,10 @@ class CustomerView(QWidget):
         keyword = self.search_box.text().strip()
         while self.shop_grid.count():
             item = self.shop_grid.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
         if keyword:
             results = self._app.catalog.search(keyword)
             for i, (view, shop) in enumerate(results):
@@ -221,6 +225,7 @@ class CustomerView(QWidget):
         while self.dish_list.count():
             item = self.dish_list.takeAt(0)
             if item.widget():
+                item.widget().setParent(None)
                 item.widget().deleteLater()
         for view in self._app.catalog.list_shop_dishes(self._current_shop):
             self.dish_list.addWidget(self._dish_row(view, shop))
@@ -304,6 +309,7 @@ class CustomerView(QWidget):
         while self.order_cards.count():
             item = self.order_cards.takeAt(0)
             if item.widget():
+                item.widget().setParent(None)
                 item.widget().deleteLater()
         orders = self._app.orders.list_customer_orders(self._me.account_id)
         if not orders:
@@ -442,12 +448,14 @@ class _CheckoutDialog(QDialog):
 
         form = QFormLayout()
         self.building = QComboBox()
+        building_model = QStandardItemModel(self.building)
         for b in app.repos.buildings.list_all():
-            self.building.addItem(f"{b.name}（{b.code}）", b.code)
+            item = QStandardItem(f"{b.name}（{b.code}）")
+            item.setData(b.code, Qt.ItemDataRole.UserRole)
             if not b.in_range:
-                model = self.building.model()
-                item = model.index(self.building.count() - 1, 0)
                 item.setEnabled(False)          # 范围外楼栋禁选（REQ-008）
+            building_model.appendRow(item)
+        self.building.setModel(building_model)
         self.phone = QLineEdit(me.phone)
         self.remark = QTextEdit()
         self.remark.setFixedHeight(56)

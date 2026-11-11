@@ -393,9 +393,14 @@ def _order_card(order, subtitle: str) -> QWidget:
 
 
 def _clear_layout(layout) -> None:
-    """清空布局内的所有控件。"""
+    """清空布局内的所有控件。
+
+    setParent(None) 让旧控件立即脱离绘制树；deleteLater 只能等事件循环，
+    在刷新后立刻截图/抓帧的场景会把旧画面叠在新控件上。
+    """
     while layout.count():
         item = layout.takeAt(0)
         widget = item.widget()
         if widget is not None:
+            widget.setParent(None)
             widget.deleteLater()
